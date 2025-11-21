@@ -20,25 +20,43 @@ request.onupgradeneeded = e => {
   objectStore.createIndex('title', 'title', { unique: false });
 };
 
-// Add video to IndexedDB
-addBtn.addEventListener('click', () => {
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-storage.js";
+
+addBtn.addEventListener('click', async () => {
   const file = videoFileInput.files[0];
   const title = videoNameInput.value.trim();
   if (!file || !title) return alert('Select a video and enter a title');
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    const transaction = db.transaction(['videos'], 'readwrite');
-    const store = transaction.objectStore('videos');
-    store.add({ title, file: reader.result });
-    transaction.oncomplete = () => {
-      loadVideos();
-      videoFileInput.value = '';
-      videoNameInput.value = '';
-    };
-  };
-  reader.readAsDataURL(file); // Convert video to base64 to store
+  // Create a reference in Firebase Storage
+  const storageRef = ref(storage, 'videos/' + file.name);
+
+  // Upload the file
+  await uploadBytes(storageRef, file);
+
+  // Get the public URL
+  const url = await getDownloadURL(storageRef);
+
+  // Add video to your UI
+  addVideoToUI(title, url);
+
+  videoFileInput.value = '';
+  videoNameInput.value = '';
 });
+
+function addVideoToUI(title, url) {
+  const div = document.createElement('div');
+  div.classList.add('video-item');
+  div.innerHTML = `
+    <video src="${url}" muted></video>
+    <p>${title}</p>
+  `;
+  div.querySelector('video').addEventListener('click', () => {
+    mainVideo.src = url;
+    videoTitle.textContent = title;
+    mainVideo.play();
+  });
+  videoList.appendChild(div);
+}
 
 // Delete video by ID
 function deleteVideo(id) {
@@ -85,3 +103,4 @@ function loadVideos() {
     }
   };
 }
+
