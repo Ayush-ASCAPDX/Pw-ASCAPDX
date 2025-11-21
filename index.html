@@ -41,8 +41,31 @@
   <button id="add-video-btn">Add Video</button>
 </section> -->
 
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
+const firebaseConfig = {
+  apiKey: "AIzaSyDYgV8A1Pj0lS1SF6dqnafIFcdoO6Sr7LQ",
+  authDomain: "ascapdxa1.firebaseapp.com",
+  projectId: "ascapdxa1",
+  storageBucket: "ascapdxa1.firebasestorage.app",
+  messagingSenderId: "175447639338",
+  appId: "1:175447639338:web:e7b2520f379bfc4bf1ca53",
+  measurementId: "G-H2RJHS4YWP"
+};
+
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+
+
+  // You can now use 'storage' in your script.js to upload videos
+</script>
 <script src="script.js"></script>
 
 </body>
 </html>
+
