@@ -1,0 +1,87 @@
+const videoList = document.getElementById('video-list');
+const mainVideo = document.getElementById('main-video');
+const videoTitle = document.getElementById('video-title');
+const addBtn = document.getElementById('add-video-btn');
+const videoFileInput = document.getElementById('video-file');
+const videoNameInput = document.getElementById('video-name');
+
+let db;
+
+// Initialize IndexedDB
+const request = indexedDB.open('videoDB', 1);
+request.onerror = () => console.error('Database failed to open');
+request.onsuccess = () => {
+  db = request.result;
+  loadVideos();
+};
+request.onupgradeneeded = e => {
+  db = e.target.result;
+  const objectStore = db.createObjectStore('videos', { keyPath: 'id', autoIncrement: true });
+  objectStore.createIndex('title', 'title', { unique: false });
+};
+
+// Add video to IndexedDB
+addBtn.addEventListener('click', () => {
+  const file = videoFileInput.files[0];
+  const title = videoNameInput.value.trim();
+  if (!file || !title) return alert('Select a video and enter a title');
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const transaction = db.transaction(['videos'], 'readwrite');
+    const store = transaction.objectStore('videos');
+    store.add({ title, file: reader.result });
+    transaction.oncomplete = () => {
+      loadVideos();
+      videoFileInput.value = '';
+      videoNameInput.value = '';
+    };
+  };
+  reader.readAsDataURL(file); // Convert video to base64 to store
+});
+
+// Delete video by ID
+function deleteVideo(id) {
+  if (!confirm('Are you sure you want to delete this video?')) return;
+  const transaction = db.transaction(['videos'], 'readwrite');
+  const store = transaction.objectStore('videos');
+  store.delete(id);
+  transaction.oncomplete = () => loadVideos();
+}
+
+// Load videos from IndexedDB
+function loadVideos() {
+  videoList.innerHTML = '';
+  const transaction = db.transaction(['videos'], 'readonly');
+  const store = transaction.objectStore('videos');
+  store.openCursor().onsuccess = e => {
+    const cursor = e.target.result;
+    if (cursor) {
+      const videoData = cursor.value;
+      const div = document.createElement('div');
+      div.classList.add('video-item');
+
+      div.innerHTML = `
+        <video src="${videoData.file}" muted></video>
+        <p>${videoData.title}</p>
+        <button class="delete-btn">Delete</button>
+      `;
+
+      // Play video on click
+      div.querySelector('video').addEventListener('click', () => {
+        mainVideo.src = videoData.file;
+        videoTitle.textContent = videoData.title;
+        mainVideo.play();
+      });
+
+      // Delete button click
+      div.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.stopPropagation(); // prevent triggering video play
+        deleteVideo(videoData.id);
+      });
+
+      videoList.appendChild(div);
+      cursor.continue();
+    }
+  };
+}
